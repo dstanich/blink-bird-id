@@ -1,6 +1,6 @@
 # blink-bird-id
 
-**UNDER DEVELOPMENT** - This is a hobby project under development slowly as I have time
+**UNDER DEVELOPMENT** - This is a hobby project under development (assistance via Copilot) slowly as I have time.
 
 Node.js and Python application to to orchestrate downloading recorded clips from [Blink Smart Security](https://blinkforhome.com), using [blinkpy](https://github.com/fronzbot/blinkpy), then identifying what bird(s) are in the clip.
 
