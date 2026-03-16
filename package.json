@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@google/genai": "^1.43.0",
+    "better-sqlite3": "^12.8.0",
     "dotenv": "^17.3.1"
   }
 }
