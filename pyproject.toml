@@ -6,7 +6,6 @@ build-backend = "hatchling.build"
 name = "blink-bird-id"
 version = "1.0.0"
 description = "Node.js and Python application to orchestrate downloading recorded clips from Blink Smart Security and identifying birds using AI"
-readme = "README.md"
 requires-python = ">=3.9"
 license = {text = "MIT"}
 authors = [
