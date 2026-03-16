@@ -68,7 +68,7 @@ async function checkForNewClips() {
     // Filter out any clips already in our database
     clips = clips.filter(clip => {
       const clipId = clip.id;
-      if (storage.data[clipId]) {
+      if (storage.data(new Date(sinceTimestamp).toISOString())[clipId]) {
         console.log(`✓ Skipping already processed clip: ${clipId}`);
         return false;
       }
