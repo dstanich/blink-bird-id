@@ -43,15 +43,15 @@ node_modules/
 *~
 
 # Downloads
-downloads/*
+downloads/
 !downloads/.gitkeep
 
 # Data
-data/*
+data/
 !data/.gitkeep
 
 # Config
-config/*
+config/
 !config/.gitkeep
 
 # uv
