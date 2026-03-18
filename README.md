@@ -1,23 +1,26 @@
 # blink-bird-id
 
-**UNDER DEVELOPMENT** - This is a hobby project under development (assistance via Claude and/or Copilot) as I have time.
+Bird identification software intended on being used in conjunction with this 3d printable bird feeder with Blink camera mount.  The model is available on [Maker World by user Michele](https://makerworld.com/en/models/1239253-smart-bird-feeder-with-integrated-wifi-camera).
+
+This repo is a mix of developer written and AI agent written code as a hobby project to experiment with AI such as GitHub Copilot and Claude.
+
+## Overview
 
 Node.js and Python application to to orchestrate downloading recorded clips from [Blink Smart Security](https://blinkforhome.com), using [blinkpy](https://github.com/fronzbot/blinkpy), then identifying what bird(s) are in the clip.
 
-This software was meant to be used in conjunction with this 3d printable bird feeder with Blink camera mount.  The model is available on [Maker World by user Michele](https://makerworld.com/en/models/1239253-smart-bird-feeder-with-integrated-wifi-camera).
+Frontend written with Next.js intended to be built and exported as a static website.
 
-## Deployed Instance
+## Example Deployed Instance
 
-**UNDER DEVELOPMENT** - I am in the process of setting up a static view of my results from running this project served via AWS.  This will be added over time and I will include the URL once available.
+An example of the code running can be found at https://winging-it.org.
+
+Winging-It is being hosted as a static site on AWS and will be updated as improvements are made to the repo.
 
 
 ## TODOs
 
-- [ ] Web UI
 - [ ] TypeScript
 - [ ] Tests
 - [ ] Linting
-- [ ] Database or similar for storage
-- [ ] Better error handling
 - [ ] Graphing and other nice visualizations
 
