@@ -41,7 +41,8 @@ function getDb() {
 }
 
 function toChicagoDate(isoString: string): string {
-  return new Date(isoString).toLocaleDateString("en-US", {
+  // en-CA locale produces YYYY-MM-DD format, safe for use in URL paths
+  return new Date(isoString).toLocaleDateString("en-CA", {
     timeZone: "America/Chicago",
   });
 }
