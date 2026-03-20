@@ -16,6 +16,24 @@ An example of the code running can be found at https://winging-it.org.
 
 Winging-It is being hosted as a static site on AWS and will be updated as improvements are made to the repo.
 
+## Running
+### Server
+
+The server is Node.js/Python that is responsible for connecting with Blink's cloud, downloading thumbnails, communicating with AI provider, and storing the results into storage.
+
+#### Setup
+
+**TODO**
+
+
+### Client
+
+The client is a Next.js application that is statically exported into files then published to a hosting location.  The client code pulls data from the server via the thumbnail download directory and the persistent storage where AI result data is kept.
+
+#### Setup
+
+**TODO**
+
 
 ## TODOs
 
