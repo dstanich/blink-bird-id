@@ -52,7 +52,7 @@ async function checkForNewClips() {
     console.log('✓ Authenticated with Blink Cloud');
 
     // Call blink and get latest clips
-    const sinceTimestamp = Date.now() - 16 * 60 * 60 * 1000; // 8 hours in milliseconds
+    const sinceTimestamp = Date.now() - 8 * 60 * 60 * 1000; // 8 hours in milliseconds
     const cmdResult = await listClips(process.env.CAMERA_NAME, new Date(sinceTimestamp).toISOString());
     if (!cmdResult.success) {
       console.error('Failed to list clips:', cmdResult.error);
