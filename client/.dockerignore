@@ -1,0 +1,8 @@
+node_modules
+.next
+out
+.env
+
+# Do not copy the symlinks used for local dev
+public/downloads/
+data/
