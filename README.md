@@ -1,4 +1,4 @@
-# blink-bird-id
+# blink-bird-id ![Winging It logo](client/public/images/winging-it-32x32.png)
 
 Bird identification software intended on being used in conjunction with this 3d printable bird feeder with Blink camera mount.  The model is available on [Maker World by user Michele](https://makerworld.com/en/models/1239253-smart-bird-feeder-with-integrated-wifi-camera).
 
