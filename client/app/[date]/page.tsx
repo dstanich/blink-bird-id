@@ -24,7 +24,7 @@ export default async function DatePage({
         <h1 className="text-3xl font-bold mt-2 mb-8 text-zinc-900 dark:text-zinc-100">
           {formatDateHeading(date)}
         </h1>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {clips.map((clip) => (
             <div
               key={clip.id}
