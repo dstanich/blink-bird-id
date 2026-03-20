@@ -1,4 +1,4 @@
-import { getAvailableDates, getClipsForDate, formatDateHeading } from "@/lib/db";
+import { getAvailableDates, getClipsForDate, formatDateHeading, formatClipTime } from "@/lib/db";
 
 export function generateStaticParams() {
   return getAvailableDates().map((date) => ({ date }));
@@ -30,6 +30,9 @@ export default async function DatePage({
               key={clip.id}
               className="rounded-lg overflow-hidden bg-white dark:bg-zinc-900 shadow-sm"
             >
+              <p className="px-2 pt-2 text-sm font-medium text-zinc-500 dark:text-zinc-400">
+                {formatClipTime(clip.createdAt)}
+              </p>
               <img
                 src={`/${clip.thumbnailPath}`}
                 alt={
@@ -64,12 +67,22 @@ export default async function DatePage({
                         )}
                       </div>
                     ) : (
-                      <p key={i} className="text-sm text-red-500">
-                        {ident.nonBirdSpecies ?? "Not a bird"}
-                      </p>
+                      <div key={i} className="text-sm text-red-500">
+                        <p>{ident.nonBirdSpecies ?? "Not a bird"}</p>
+                        {ident.confidence != null && (
+                          <p className="text-xs text-zinc-400">
+                            {Math.round(parseFloat(ident.confidence) * 100)}% confidence
+                          </p>
+                        )}
+                      </div>
                     )
                   )}
                 </div>
+                {clip.identifications[0]?.model && (
+                  <p className="mt-2 text-xs text-zinc-400">
+                    AI model: {clip.identifications[0].model}
+                  </p>
+                )}
               </div>
             </div>
           ))}

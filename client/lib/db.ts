@@ -12,6 +12,7 @@ interface ClipRow {
   count: number | null;
   confidence: string | null;
   non_bird_species: string | null;
+  model: string | null;
 }
 
 export interface Identification {
@@ -21,6 +22,7 @@ export interface Identification {
   count: number | null;
   confidence: string | null;
   nonBirdSpecies: string | null;
+  model: string | null;
 }
 
 export interface Clip {
@@ -80,6 +82,7 @@ function buildClips(rows: ClipRow[]): Clip[] {
         count: row.count,
         confidence: row.confidence,
         nonBirdSpecies: row.non_bird_species,
+        model: row.model,
       });
     }
   }
@@ -114,7 +117,7 @@ export function getClipsForDate(date: string): Clip[] {
   const rows = db
     .prepare(
       `SELECT c.id, c.created_at, c.local_thumbnail_path, c.time_zone,
-              i.is_bird, i.species, i.gender, i.count, i.confidence, i.non_bird_species
+              i.is_bird, i.species, i.gender, i.count, i.confidence, i.non_bird_species, i.model
        FROM clips c
        LEFT JOIN identifications i ON c.id = i.clip_id
        ORDER BY c.created_at DESC`
@@ -125,6 +128,14 @@ export function getClipsForDate(date: string): Clip[] {
 
   const filtered = rows.filter((r) => toChicagoDate(r.created_at) === date);
   return buildClips(filtered);
+}
+
+export function formatClipTime(isoString: string): string {
+  return new Date(isoString).toLocaleTimeString("en-US", {
+    timeZone: "America/Chicago",
+    hour: "numeric",
+    minute: "2-digit",
+  });
 }
 
 export function formatDateHeading(date: string): string {
