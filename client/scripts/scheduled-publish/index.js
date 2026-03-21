@@ -1,9 +1,10 @@
 import { execSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { readdirSync, readFileSync, statSync, cpSync, existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import mime from "mime";
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
 import {
   CloudFrontClient,
   CreateInvalidationCommand,
@@ -30,6 +31,29 @@ function build() {
   }
 }
 
+// Fetch all existing S3 object ETags into a Map<key, etag>
+async function getExistingETags(s3, bucket, prefix) {
+  const etags = new Map();
+  let continuationToken;
+
+  do {
+    const params = { Bucket: bucket, MaxKeys: 1000 };
+    if (prefix) params.Prefix = prefix;
+    if (continuationToken) params.ContinuationToken = continuationToken;
+
+    const response = await s3.send(new ListObjectsV2Command(params));
+
+    for (const obj of response.Contents || []) {
+      // ETags are quoted strings like '"abc123..."', strip quotes
+      etags.set(obj.Key, obj.ETag.replace(/"/g, ""));
+    }
+
+    continuationToken = response.IsTruncated ? response.NextContinuationToken : undefined;
+  } while (continuationToken);
+
+  return etags;
+}
+
 // Upload all our build Next.js static output to s3
 async function uploadToS3() {
   const bucket = process.env.SCHEDULED_PUBLISH_S3_BUCKET;
@@ -43,8 +67,19 @@ async function uploadToS3() {
   console.log(`Uploading files to S3 bucket ${bucket} with prefix "${prefix}"...`);
 
   const s3 = new S3Client();
+
+  // Fetch existing ETags to skip unchanged files
+  let existingETags = new Map();
+  try {
+    existingETags = await getExistingETags(s3, bucket, prefix || undefined);
+    console.log(`Found ${existingETags.size} existing objects in S3.`);
+  } catch (error) {
+    console.warn(`Could not list existing S3 objects, will upload all files: ${error.message}`);
+  }
+
   const files = readdirSync(OUT_DIR, { recursive: true });
   let uploaded = 0;
+  let skipped = 0;
   let errors = 0;
 
   for (const relativePath of files) {
@@ -60,6 +95,16 @@ async function uploadToS3() {
 
     try {
       const body = readFileSync(fullPath);
+
+      // Compare local MD5 with existing S3 ETag
+      const localMd5 = createHash("md5").update(body).digest("hex");
+      const remoteETag = existingETags.get(key);
+
+      if (remoteETag === localMd5) {
+        skipped++;
+        continue;
+      }
+
       await s3.send(
         new PutObjectCommand({
           Bucket: bucket,
@@ -76,7 +121,7 @@ async function uploadToS3() {
   }
 
   console.log(
-    `Upload complete: ${uploaded} files uploaded, ${errors} errors.`
+    `Upload complete: ${uploaded} uploaded, ${skipped} skipped (unchanged), ${errors} errors.`
   );
 
   if (uploaded > 0) {
