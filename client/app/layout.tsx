@@ -17,6 +17,7 @@ export const metadata: Metadata = {
   description: "Bird species identified from Blink camera clips",
   icons: {
     icon: "/images/winging-it-32x32.png",
+    apple: "/images/winging-it-512x512.png",
   },
 };
 
