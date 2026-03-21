@@ -1,4 +1,5 @@
-import { getAvailableDates, getClipsForDate, formatDateHeading, formatClipTime } from "@/lib/db";
+import { getAvailableDates, getClipsForDate, getDateSummary, formatDateHeading, formatClipTime } from "@/lib/db";
+import { ClipGrid } from "./clip-grid";
 
 export function generateStaticParams() {
   return getAvailableDates().map((date) => ({ date }));
@@ -11,6 +12,7 @@ export default async function DatePage({
 }) {
   const { date } = await params;
   const clips = getClipsForDate(date);
+  const summary = getDateSummary(clips);
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 px-4 py-8">
@@ -21,72 +23,51 @@ export default async function DatePage({
         >
           &larr; All dates
         </a>
-        <h1 className="text-3xl font-bold mt-2 mb-8 text-zinc-900 dark:text-zinc-100">
+        <h1 className="text-3xl font-bold mt-2 mb-6 text-zinc-900 dark:text-zinc-100">
           {formatDateHeading(date)}
         </h1>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {clips.map((clip) => (
-            <div
-              key={clip.id}
-              className="rounded-lg overflow-hidden bg-white dark:bg-zinc-900 shadow-sm"
-            >
-              <p className="px-2 pt-2 text-sm font-medium text-zinc-500 dark:text-zinc-400">
-                {formatClipTime(clip.createdAt)}
-              </p>
-              <img
-                src={`/${clip.thumbnailPath}`}
-                alt={
-                  clip.identifications[0]?.species ?? "Unidentified clip"
-                }
-                className="w-full aspect-video object-cover"
-              />
-              <div className="p-2">
-                {clip.identifications.length === 0 && (
-                  <p className="text-sm text-zinc-400">No identification</p>
-                )}
-                <div className="space-y-2">
-                  {clip.identifications.map((ident, i) =>
-                    ident.isBird ? (
-                      <div
-                        key={i}
-                        className="text-sm text-zinc-700 dark:text-zinc-300"
-                      >
-                        <p>
-                          {ident.species}
-                          {ident.gender && ident.gender !== "unknown"
-                            ? ` (${ident.gender})`
-                            : ""}
-                          {ident.count && ident.count > 1
-                            ? ` ×${ident.count}`
-                            : ""}
-                        </p>
-                        {ident.confidence != null && (
-                          <p className="text-xs text-zinc-400">
-                            {Math.round(parseFloat(ident.confidence) * 100)}% confidence
-                          </p>
-                        )}
-                      </div>
-                    ) : (
-                      <div key={i} className="text-sm text-red-500">
-                        <p>{ident.nonBirdSpecies ?? "Not a bird"}</p>
-                        {ident.confidence != null && (
-                          <p className="text-xs text-zinc-400">
-                            {Math.round(parseFloat(ident.confidence) * 100)}% confidence
-                          </p>
-                        )}
-                      </div>
-                    )
-                  )}
-                </div>
-                {clip.identifications[0]?.model && (
-                  <p className="mt-2 text-xs text-zinc-400">
-                    AI model: {clip.identifications[0].model}
-                  </p>
-                )}
-              </div>
+
+        <h2 className="text-xl font-semibold mb-3 text-zinc-800 dark:text-zinc-200">
+          Summary
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-2 mb-8">
+          <div className="flex">
+            <span className="w-36 shrink-0 text-sm font-medium text-zinc-500 dark:text-zinc-400">Clips</span>
+            <span className="text-sm text-zinc-900 dark:text-zinc-100">{summary.clipCount}</span>
+          </div>
+          {summary.busiestHour && (
+            <div className="flex">
+              <span className="w-36 shrink-0 text-sm font-medium text-zinc-500 dark:text-zinc-400">Busiest hour</span>
+              <span className="text-sm text-zinc-900 dark:text-zinc-100">{summary.busiestHour}</span>
             </div>
-          ))}
+          )}
+          <div className="flex">
+            <span className="w-36 shrink-0 text-sm font-medium text-zinc-500 dark:text-zinc-400">Birds</span>
+            <span className="text-sm text-zinc-900 dark:text-zinc-100">{summary.birdCount}</span>
+          </div>
+          {summary.mostCommonBirds.length > 0 && (
+            <div className="flex">
+              <span className="w-36 shrink-0 text-sm font-medium text-zinc-500 dark:text-zinc-400">Most common</span>
+              <span className="text-sm text-zinc-900 dark:text-zinc-100">{summary.mostCommonBirds.join(", ")}</span>
+            </div>
+          )}
+          <div className="flex">
+            <span className="w-36 shrink-0 text-sm font-medium text-zinc-500 dark:text-zinc-400">Non-birds</span>
+            <span className="text-sm text-zinc-900 dark:text-zinc-100">{summary.nonBirdCount}</span>
+          </div>
+          <div className="flex">
+            <span className="w-36 shrink-0 text-sm font-medium text-zinc-500 dark:text-zinc-400">Squirrel visits</span>
+            <span className="text-sm text-zinc-900 dark:text-zinc-100">{summary.squirrelVisits}</span>
+          </div>
         </div>
+
+        <h2 className="text-xl font-semibold mb-3 text-zinc-800 dark:text-zinc-200">
+          Feeder Images
+        </h2>
+        <ClipGrid
+          clips={clips}
+          clipTimes={Object.fromEntries(clips.map((c) => [c.id, formatClipTime(c.createdAt)]))}
+        />
       </main>
     </div>
   );

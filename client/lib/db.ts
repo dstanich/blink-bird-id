@@ -130,6 +130,74 @@ export function getClipsForDate(date: string): Clip[] {
   return buildClips(filtered);
 }
 
+export interface DateSummary {
+  clipCount: number;
+  birdCount: number;
+  nonBirdCount: number;
+  squirrelVisits: number;
+  mostCommonBirds: string[];
+  busiestHour: string | null;
+}
+
+export function getDateSummary(clips: Clip[]): DateSummary {
+  let birdCount = 0;
+  let nonBirdCount = 0;
+  let squirrelVisits = 0;
+  const speciesCounts = new Map<string, number>();
+
+  for (const clip of clips) {
+    for (const ident of clip.identifications) {
+      if (ident.isBird) {
+        const count = ident.count ?? 1;
+        birdCount += count;
+        if (ident.species) {
+          speciesCounts.set(ident.species, (speciesCounts.get(ident.species) ?? 0) + count);
+        }
+      } else {
+        nonBirdCount++;
+        if (ident.nonBirdSpecies?.toLowerCase().includes("squirrel")) {
+          squirrelVisits++;
+        }
+      }
+    }
+  }
+
+  let mostCommonBirds: string[] = [];
+
+  if (speciesCounts.size > 0) {
+    const maxCount = Math.max(...speciesCounts.values());
+    mostCommonBirds = [...speciesCounts.entries()].filter(([, c]) => c === maxCount).map(([s]) => s);
+  }
+
+  // Find the busiest hour by bucketing clips into Chicago-time hours
+  let busiestHour: string | null = null;
+  if (clips.length > 0) {
+    const hourCounts = new Map<number, number>();
+    for (const clip of clips) {
+      const hour = parseInt(
+        new Date(clip.createdAt).toLocaleTimeString("en-US", {
+          timeZone: "America/Chicago",
+          hour: "numeric",
+          hour12: false,
+        }),
+        10
+      );
+      hourCounts.set(hour, (hourCounts.get(hour) ?? 0) + 1);
+    }
+    const maxCount = Math.max(...hourCounts.values());
+    const peakHour = [...hourCounts.entries()].find(([, c]) => c === maxCount)![0];
+
+    const fmt = (h: number) => {
+      const suffix = h < 12 || h === 24 ? "AM" : "PM";
+      const display = h === 0 || h === 24 ? 12 : h > 12 ? h - 12 : h;
+      return `${display} ${suffix}`;
+    };
+    busiestHour = `${fmt(peakHour)} – ${fmt(peakHour + 1)}`;
+  }
+
+  return { clipCount: clips.length, birdCount, nonBirdCount, squirrelVisits, mostCommonBirds, busiestHour };
+}
+
 export function formatClipTime(isoString: string): string {
   return new Date(isoString).toLocaleTimeString("en-US", {
     timeZone: "America/Chicago",
