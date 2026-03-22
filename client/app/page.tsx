@@ -16,11 +16,12 @@ export default function Home() {
           </a>
         </div>
         <p className="max-w-2xl mb-8 text-zinc-600 dark:text-zinc-400">
-          AI powered bird identifications written in collaboration with GitHub Copilot and Claude Code
+          AI powered bird identifications (<a href="/settings/index.html" className="text-blue-600 dark:text-blue-400 hover:underline">current AI settings</a>) written in collaboration with GitHub Copilot and Claude Code
           {' '}(<a href="https://github.com/dstanich/blink-bird-id" target="_blank" className="text-blue-600 dark:text-blue-400 hover:underline">GitHub Repo</a>). Location of camera is in the
           {' '}midwest USA using a Blink camera mounted inside a
           {' '}<a href="https://makerworld.com/en/models/1239253-smart-bird-feeder-with-integrated-wifi-camera" target="_blank" className="text-blue-600 dark:text-blue-400 hover:underline">3D printed bird feeder</a>.
         </p>
+        <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 mb-4">Date</h2>
         <ul className="space-y-2">
           {dates.map((date) => (
             <li key={date}>

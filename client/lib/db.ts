@@ -210,6 +210,33 @@ export function formatClipTime(isoString: string): string {
   });
 }
 
+export interface ActiveSettings {
+  aiModel: string | null;
+  aiPrompt: string | null;
+}
+
+export function getActiveSettings(): ActiveSettings {
+  const db = getDb();
+
+  const rows = db
+    .prepare(
+      `SELECT name, value FROM settings WHERE is_active = 1 AND name IN ('ai_model', 'ai_prompt')`
+    )
+    .all() as { name: string; value: string }[];
+
+  db.close();
+
+  let aiModel: string | null = null;
+  let aiPrompt: string | null = null;
+
+  for (const row of rows) {
+    if (row.name === "ai_model") aiModel = row.value;
+    if (row.name === "ai_prompt") aiPrompt = row.value;
+  }
+
+  return { aiModel, aiPrompt };
+}
+
 export function formatDateHeading(date: string): string {
   return toHumanDate(date + "T12:00:00");
 }
