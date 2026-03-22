@@ -30,7 +30,7 @@ function initializeApp() {
   }
 
   storage = new Storage();
-  aiProvider = new AIProvider();
+  aiProvider = new AIProvider(storage);
 }
 
 /**

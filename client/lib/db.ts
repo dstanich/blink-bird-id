@@ -12,6 +12,8 @@ interface ClipRow {
   count: number | null;
   confidence: string | null;
   non_bird_species: string | null;
+  ai_model_id: number | null;
+  ai_prompt_id: number | null;
   model: string | null;
 }
 
@@ -117,9 +119,11 @@ export function getClipsForDate(date: string): Clip[] {
   const rows = db
     .prepare(
       `SELECT c.id, c.created_at, c.local_thumbnail_path, c.time_zone,
-              i.is_bird, i.species, i.gender, i.count, i.confidence, i.non_bird_species, i.model
+              i.is_bird, i.species, i.gender, i.count, i.confidence, i.non_bird_species,
+              i.ai_model_id, i.ai_prompt_id, s.value as model
        FROM clips c
        LEFT JOIN identifications i ON c.id = i.clip_id
+       LEFT JOIN settings s ON i.ai_model_id = s.id
        ORDER BY c.created_at DESC`
     )
     .all() as ClipRow[];

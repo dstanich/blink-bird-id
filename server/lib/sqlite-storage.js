@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3';
 import * as fs from 'fs';
 import * as path from 'path';
+import { DEFAULT_PROMPT, DEFAULT_MODEL } from './ai-provider.js';
 
 export class SQLiteStorage {
     constructor() {
@@ -39,12 +40,136 @@ export class SQLiteStorage {
                 count INTEGER,
                 confidence REAL,
                 non_bird_species TEXT,
-                model TEXT
+                ai_model_id INTEGER REFERENCES settings(id),
+                ai_prompt_id INTEGER REFERENCES settings(id)
             );
 
             CREATE INDEX IF NOT EXISTS idx_identifications_species ON identifications(species);
             CREATE INDEX IF NOT EXISTS idx_clips_created_at ON clips(created_at);
+
+            CREATE TABLE IF NOT EXISTS settings (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                value TEXT NOT NULL,
+                is_active BOOLEAN NOT NULL DEFAULT 0
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_settings_name ON settings(name);
         `);
+
+        this._seedDefaultSettings();
+        this._migrateIdentifications();
+    }
+
+    _migrateIdentifications() {
+        // Migrate from old `model` TEXT column to `ai_model_id` + `ai_prompt_id` foreign keys
+        const columns = this.db.pragma('table_info(identifications)');
+        const hasModelColumn = columns.some(c => c.name === 'model');
+        if (!hasModelColumn) return; // already migrated or fresh DB
+
+        const hasAiModelId = columns.some(c => c.name === 'ai_model_id');
+        if (!hasAiModelId) {
+            this.db.exec('ALTER TABLE identifications ADD COLUMN ai_model_id INTEGER REFERENCES settings(id)');
+        }
+        const hasAiPromptId = columns.some(c => c.name === 'ai_prompt_id');
+        if (!hasAiPromptId) {
+            this.db.exec('ALTER TABLE identifications ADD COLUMN ai_prompt_id INTEGER REFERENCES settings(id)');
+        }
+
+        // Backfill ai_model_id from the model text value by matching against settings
+        this.db.exec(`
+            UPDATE identifications
+            SET ai_model_id = (
+                SELECT s.id FROM settings s
+                WHERE s.name = 'ai_model' AND s.value = identifications.model
+                LIMIT 1
+            )
+            WHERE ai_model_id IS NULL AND model IS NOT NULL
+        `);
+
+        // Backfill ai_prompt_id with the active prompt for rows that had a model set
+        const activePrompt = this.db.prepare("SELECT id FROM settings WHERE name = 'ai_prompt' AND is_active = 1").get();
+        if (activePrompt) {
+            this.db.exec(`
+                UPDATE identifications
+                SET ai_prompt_id = ${activePrompt.id}
+                WHERE ai_prompt_id IS NULL AND model IS NOT NULL
+            `);
+        }
+
+        // Drop the old model column by recreating the table
+        this.db.exec(`
+            CREATE TABLE IF NOT EXISTS identifications_new (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                clip_id INTEGER NOT NULL REFERENCES clips(id),
+                is_bird BOOLEAN NOT NULL,
+                species TEXT,
+                gender TEXT,
+                count INTEGER,
+                confidence REAL,
+                non_bird_species TEXT,
+                ai_model_id INTEGER REFERENCES settings(id),
+                ai_prompt_id INTEGER REFERENCES settings(id)
+            );
+            INSERT INTO identifications_new (id, clip_id, is_bird, species, gender, count, confidence, non_bird_species, ai_model_id, ai_prompt_id)
+                SELECT id, clip_id, is_bird, species, gender, count, confidence, non_bird_species, ai_model_id, ai_prompt_id FROM identifications;
+            DROP TABLE identifications;
+            ALTER TABLE identifications_new RENAME TO identifications;
+            CREATE INDEX IF NOT EXISTS idx_identifications_species ON identifications(species);
+        `);
+    }
+
+    _seedDefaultSettings() {
+        const defaults = [
+            {
+                name: 'ai_prompt',
+                value: DEFAULT_PROMPT,
+            },
+            {
+                name: 'ai_model',
+                value: DEFAULT_MODEL,
+            },
+        ];
+
+        const insert = this.db.prepare('INSERT INTO settings (name, value, is_active) VALUES (?, ?, 1)');
+        for (const { name, value } of defaults) {
+            const existing = this.db.prepare('SELECT COUNT(*) as count FROM settings WHERE name = ?').get(name);
+            if (existing.count === 0) {
+                insert.run(name, value);
+            }
+        }
+    }
+
+    getSetting(name) {
+        const row = this.db.prepare('SELECT value FROM settings WHERE name = ? AND is_active = 1').get(name);
+        return row ? row.value : null;
+    }
+
+    getSettingWithId(name) {
+        const row = this.db.prepare('SELECT id, value FROM settings WHERE name = ? AND is_active = 1').get(name);
+        return row || null;
+    }
+
+    getSettings(name) {
+        return this.db.prepare('SELECT * FROM settings WHERE name = ?').all(name);
+    }
+
+    setSetting(name, value, isActive = 0) {
+        return this.db.prepare('INSERT INTO settings (name, value, is_active) VALUES (?, ?, ?)').run(name, value, isActive ? 1 : 0);
+    }
+
+    updateSetting(id, { value, isActive } = {}) {
+        const fields = [];
+        const params = [];
+        if (value !== undefined) { fields.push('value = ?'); params.push(value); }
+        if (isActive !== undefined) { fields.push('is_active = ?'); params.push(isActive ? 1 : 0); }
+        if (fields.length === 0) return;
+        params.push(id);
+        this.db.prepare(`UPDATE settings SET ${fields.join(', ')} WHERE id = ?`).run(...params);
+    }
+
+    deleteSetting(id) {
+        this.db.prepare('DELETE FROM settings WHERE id = ?').run(id);
     }
 
     addClip(clip) {
@@ -54,8 +179,8 @@ export class SQLiteStorage {
         `);
 
         const insertIdentification = this.db.prepare(`
-            INSERT INTO identifications (clip_id, is_bird, species, gender, count, confidence, non_bird_species, model)
-            VALUES (@clip_id, @is_bird, @species, @gender, @count, @confidence, @non_bird_species, @model)
+            INSERT INTO identifications (clip_id, is_bird, species, gender, count, confidence, non_bird_species, ai_model_id, ai_prompt_id)
+            VALUES (@clip_id, @is_bird, @species, @gender, @count, @confidence, @non_bird_species, @ai_model_id, @ai_prompt_id)
         `);
 
         const transaction = this.db.transaction((clip) => {
@@ -88,7 +213,8 @@ export class SQLiteStorage {
                     count: ident.count ?? null,
                     confidence: ident.confidence ?? null,
                     non_bird_species: ident.non_bird_species || null,
-                    model: ident.model || null,
+                    ai_model_id: ident.ai_model_id ?? null,
+                    ai_prompt_id: ident.ai_prompt_id ?? null,
                 });
             }
         });
