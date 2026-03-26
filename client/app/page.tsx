@@ -21,19 +21,30 @@ export default function Home() {
           {' '}midwest USA using a Blink camera mounted inside a
           {' '}<a href="https://makerworld.com/en/models/1239253-smart-bird-feeder-with-integrated-wifi-camera" target="_blank" className="text-blue-600 dark:text-blue-400 hover:underline">3D printed bird feeder</a>.
         </p>
-        <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 mb-4">Date</h2>
-        <ul className="space-y-2">
-          {dates.map((date) => (
-            <li key={date}>
-              <a
-                href={`/${date}/index.html`}
-                className="text-lg text-blue-600 dark:text-blue-400 hover:underline"
-              >
-                {formatDateHeading(date)}
-              </a>
-            </li>
-          ))}
-        </ul>
+        <div className="flex flex-col md:flex-row md:gap-12">
+          <div>
+            <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 mb-4">Date</h2>
+            <ul className="space-y-2">
+              {dates.map((date) => (
+                <li key={date}>
+                  <a
+                    href={`/${date}/index.html`}
+                    className="text-lg text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    {formatDateHeading(date)}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="mt-6 md:mt-0">
+            <img
+              src="/images/feeder-20260326.jpg"
+              alt="Bird feeder camera setup"
+              className="w-full max-w-sm rounded-lg"
+            />
+          </div>
+        </div>
       </main>
     </div>
   );

@@ -13,7 +13,7 @@ import {
 const __dirname = path.dirname(fileURLToPath(import.meta.url)); // workaround to get current directory in ES module context
 const CLIENT_DIR = process.env.SCHEDULED_PUBLISH_CLIENT_DIR || path.resolve(__dirname, "../..");
 const OUT_DIR = path.join(CLIENT_DIR, "out");
-const EIGHT_HOURS_MS = 8 * 60 * 60 * 1000;
+const FIVE_HOURS_MS = 5 * 60 * 60 * 1000;
 
 // Build Next.js app into static files
 function build() {
@@ -192,9 +192,9 @@ async function run() {
     await uploadToS3();
   }
 
-  const nextRun = new Date(Date.now() + EIGHT_HOURS_MS);
+  const nextRun = new Date(Date.now() + FIVE_HOURS_MS);
   console.log(`Next run scheduled for: ${nextRun.toISOString()}`);
-  setTimeout(run, EIGHT_HOURS_MS);
+  setTimeout(run, FIVE_HOURS_MS);
 }
 
 run();
