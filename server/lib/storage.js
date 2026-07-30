@@ -92,6 +92,14 @@ export class Storage {
     }
 
     /**
+     * Returns the created_at timestamp of the most recently created clip, or null if none exist.
+     * @returns {string|null}
+     */
+    getMostRecentClipTimestamp() {
+        return this.provider.getMostRecentClipTimestamp();
+    }
+
+    /**
      * Deletes clips (and their identifications) with created_at strictly before the cutoff.
      * @param {string} cutoffIso - ISO 8601 timestamp; rows with created_at < cutoff are removed.
      * @returns {{ clipsDeleted: number, identificationsDeleted: number }}

@@ -269,6 +269,11 @@ export class SQLiteStorage {
         return result;
     }
 
+    getMostRecentClipTimestamp() {
+        const row = this.db.prepare('SELECT created_at FROM clips ORDER BY created_at DESC LIMIT 1').get();
+        return row ? row.created_at : null;
+    }
+
     pruneClipsBefore(cutoffIso) {
         const deleteIdents = this.db.prepare(
             'DELETE FROM identifications WHERE clip_id IN (SELECT id FROM clips WHERE created_at < ?)'

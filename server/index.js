@@ -26,6 +26,7 @@ const BIRDNET_ENABLED = process.env.BIRDNET_ENABLED === 'true';
 const BIRDNET_GO_URL = process.env.BIRDNET_GO_URL;
 const BIRDNET_MIN_CONFIDENCE = parseFloat(process.env.BIRDNET_MIN_CONFIDENCE || 0.7);
 const BIRDNET_LOOKBACK_HOURS = parseInt(process.env.BIRDNET_LOOKBACK_HOURS || 48);
+const VIDEO_COOLDOWN_SECONDS = parseInt(process.env.VIDEO_COOLDOWN_SECONDS || 0); // 0 = disabled
 
 // Persistence / AI
 let storage;
@@ -75,6 +76,45 @@ async function checkForNewClips() {
 }
 
 /**
+ * Discards clips whose timestamp falls within VIDEO_COOLDOWN_SECONDS of the
+ * previously processed clip's timestamp, to avoid burning AI calls on bursts
+ * of near-duplicate clips. Discarded clips have their video and thumbnail
+ * deleted immediately and are never sent to the AI or stored.
+ *
+ * @param {Array} clips - Newly discovered clips (unsorted).
+ * @param {number|null} lastProcessedMs - Epoch ms of the last processed clip, seeded from storage, or null if none yet.
+ * @returns {Array} Clips to actually process, in chronological order.
+ */
+function applyCooldown(clips, lastProcessedMs) {
+  if (!VIDEO_COOLDOWN_SECONDS) return clips;
+
+  const sorted = [...clips].sort((a, b) => a.id - b.id);
+  const kept = [];
+  let lastMs = lastProcessedMs;
+
+  for (const clip of sorted) {
+    const clipMs = clip.id * 1000;
+    if (lastMs !== null && clipMs - lastMs < VIDEO_COOLDOWN_SECONDS * 1000) {
+      const diffSeconds = ((clipMs - lastMs) / 1000).toFixed(1);
+      console.log(`Discarding clip ${clip.id} (${clip.media}): ${diffSeconds}s since last processed clip, within ${VIDEO_COOLDOWN_SECONDS}s cooldown`);
+      for (const filePath of [clip.localVideoPath, clip.localThumbnailPath]) {
+        if (!filePath) continue;
+        try {
+          fs.rmSync(filePath, { force: true });
+        } catch (error) {
+          console.error(`Error removing discarded file ${filePath}:`, error);
+        }
+      }
+      continue;
+    }
+    lastMs = clipMs;
+    kept.push(clip);
+  }
+
+  return kept;
+}
+
+/**
  * Process clips: identify birds using AI and save results to storage
  *
  * @param {*} clips
@@ -120,6 +160,8 @@ async function checkAndProcessClips() {
   }
 
   let clips = await checkForNewClips();
+  const lastProcessedIso = storage.getMostRecentClipTimestamp();
+  clips = applyCooldown(clips, lastProcessedIso ? Date.parse(lastProcessedIso) : null);
   clips = await processClips(clips);
 
   // Add all successfully processed clips to storage and commit
